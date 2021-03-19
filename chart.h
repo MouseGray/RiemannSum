@@ -10,8 +10,10 @@
 #include <boost/math/special_functions.hpp>
 
 #include "pixels.h"
+#include "function.h"
+#include "polynomial.h"
 
-using bigdouble = long double;//boost::multiprecision::cpp_dec_float_100;
+using bigdouble = long double; //boost::multiprecision::cpp_dec_float_100;
 
 enum class Direction : bool {
     Horizontal,
@@ -20,8 +22,7 @@ enum class Direction : bool {
 
 template<Direction Dir>
 constexpr Direction notDir() {
-    if constexpr (Dir == Direction::Horizontal) return Direction::Vertical;
-    else return Direction::Horizontal;
+    return Dir == Direction::Horizontal ? Direction::Vertical : Direction::Horizontal;
 }
 
 class Chart : public QWidget
@@ -30,70 +31,52 @@ class Chart : public QWidget
 public:
     explicit Chart(QWidget *parent = nullptr);
 
-    void setAlpha(double value);
-    void setBeta(double value);
-    void setGamma(double value);
-    void setDelta(double value);
-    void setEpsilon(double value);
+    inline void setAlpha  (double value) { f.setAlpha  (value); updateData(); }
+    inline void setBeta   (double value) { f.setBeta   (value); updateData(); }
+    inline void setGamma  (double value) { f.setGamma  (value); updateData(); }
+    inline void setDelta  (double value) { f.setDelta  (value); updateData(); }
+    inline void setEpsilon(double value) { f.setEpsilon(value); updateData(); }
 
-    void setA(double value);
-    void setB(double value);
-    void setC(double value);
-    void setD(double value);
+    void setA(double value) { P.setA(value); A = value; updateData(); }
+    void setB(double value) { P.setB(value); B = value; updateData(); }
+    void setC(double value) { C = value; update(); }
+    void setD(double value) { D = value; update(); }
 
-    void setN(int value);
+    void setN(int value) { P.setN(value); updateData(); }
 
-    void calc();
-    void setF_vision(bool value);
-    void setP_vision(bool value);
-    void setDF_vision(bool value);
-    void setDP_vision(bool value);
-    void setR_vision(bool value);
+    void setF_vision (bool value) { F_isVisible  = value; update(); }
+    void setP_vision (bool value) { P_isVisible  = value; update(); }
+    void setDF_vision(bool value) { dF_isVisible = value; update(); }
+    void setDP_vision(bool value) { dP_isVisible = value; update(); }
+    void setR_vision (bool value) { R_isVisible  = value; update(); }
 
     void updateData();
 
-    template<Direction Dir>
-    double getUPP() {
-        if constexpr (Dir == Direction::Horizontal) return XUPP;
-        else return YUPP;
-    }
+    void updateUPP();
+    void calculate_d();
 
     template<Direction Dir>
-    double getOffset() {
-        if constexpr (Dir == Direction::Horizontal) return A;
-        else return C;
-    }
+    double getUPP();
 
     template<Direction Dir>
-    double getLimit() {
-        if constexpr (Dir == Direction::Horizontal) return B;
-        else return D;
-    }
+    double getOffset();
+
+    template<Direction Dir>
+    double getLimit();
+
+    template<Direction Dir>
+    double getPixelLimit();
 signals:
-    void offsetXChanged(double value);
-    void offsetYChanged(double value);
-
-    void XPPUChanged(pixel value);
-    void YPPUChanged(pixel value);
-
     void dChanged(double d, double dx);
 
-    void lock();
-    void unlock();
-    // QWidget interface
 protected:
-    void wheelEvent(QWheelEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
 
+    void resizeEvent(QResizeEvent *) override;
 private:
     template<Direction Dir>
-    int valueToPixel(double value){
-        if constexpr (Dir == Direction::Vertical) return (height() - 20) - (value - getOffset<Dir>())/getUPP<Dir>();
-        return (value - getOffset<Dir>())/getUPP<Dir>();
-    }
+    int valueToPixel(double value);
 
     template<Direction Dir>
     double pixelToValue(int pixel) {
@@ -102,104 +85,39 @@ private:
     }
 
     template<Direction Dir>
-    bool AxisIsVisible()
-    {
-        auto pos = valueToPixel<Direction::Vertical>(0.0);
-        return pos > 0 && pos < (Dir == Direction::Horizontal ? height() : width());
-    }
+    bool AxisIsVisible();
 
     template<Direction Dir>
     void drawAxis(QPainter& painter, bool visible);
 
     void drawLine(QPainter& painter, int x1, int y1, int x2, int y2);
 
-    void fillFiniteDifferences();
+    Function f;
+    Polynomial P;
 
-    // QPoint pressPos;
-
-    bigdouble f(bigdouble x);
-
-    bigdouble t_result = 0;
-
-    double f(double x);
-    double N1(double x);
-
-    double alpha = 1.0;
-    double beta = 1.0;
-    double gamma = 1.0;
-    double delta = 1.0;
-    double epsilon = 1.0;
-
-    // double oldOffsetX = 0.0;
-    // double oldOffsetY = 0.0;
-
-    // double offsetX = 0.0;
-    // double offsetY = 0.0;
-
+    // unit per pixel
     double XUPP = 1.0;
     double YUPP = 1.0;
 
-    // pixel XPPU = 1_px;
-    // pixel YPPU = 1_px;
-
-    double A = -100;
-    double B = 100;
-    double C = -100;
-    double D = 100;
-
-    int N = 10;
+    double A = -100.0;
+    double B = 100.0;
+    double C = -100.0;
+    double D = 100.0;
 
     double d = 0.0;
     double dx = 0.0;
 
-    bool F_vision = true;
-    bool P_vision = true;
-    bool dF_vision = true;
-    bool dP_vision = true;
-    bool R_vision = true;
+    bool F_isVisible = true;
+    bool P_isVisible = true;
+    bool dF_isVisible = true;
+    bool dP_isVisible = true;
+    bool R_isVisible = true;
 
     QPoint mousePos;
 
-    std::vector<bigdouble> finiteDifferences;
-
-    // QWidget interface
-protected:
-    void resizeEvent(QResizeEvent *event) override;
+    static constexpr int BORDER_SIZE = 10;
 };
 
-template<Direction Dir>
-void Chart::drawAxis(QPainter& painter, bool visible)
-{
-    auto w = getLimit<Dir>() - getOffset<Dir>();
-    auto offset = w/10;
 
-    auto value = getOffset<Dir>();
-
-    auto axisPos = valueToPixel<notDir<Dir>()>(0.0);
-
-    for(auto i = 0; i <= 10; i++) {
-        auto pos = valueToPixel<Dir>(value);
-        auto pvalue = static_cast<int>(value*100'000)/100'000.0;
-        if constexpr (Dir == Direction::Horizontal) {
-            if (visible) {
-                drawLine(painter, pos, axisPos + 2, pos, axisPos - 2);
-                painter.drawText(pos, axisPos + 25, QString::number(pvalue, 'g', 6));
-            }
-            else {
-                painter.drawText(pos, height(), QString::number(pvalue, 'g', 6));
-            }
-        }
-        else {
-            if (visible) {
-                drawLine(painter, axisPos + 2, pos, axisPos - 2, pos);
-                painter.drawText(axisPos + 20, pos + 10, QString::number(pvalue, 'g', 6));
-            }
-            else {
-                painter.drawText(30, pos, QString::number(pvalue, 'g', 6));
-            }
-        }
-        value += offset;
-    }
-}
 
 #endif // CHART_H

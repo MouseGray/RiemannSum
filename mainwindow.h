@@ -17,30 +17,20 @@ public:
     ~MainWindow();
 
 private slots:
-    void lock();
-    void unlock();
-
-    void on_Alpha_valueChanged(double arg1);
-    void on_Delta_valueChanged(double arg1);
-    void on_Beta_valueChanged(double arg1);
-    void on_Gamma_valueChanged(double arg1);
-    void on_Epsilon_valueChanged(double arg1);
-
-
     void setd(double value, double pos);
 
     void on_AValue_valueChanged(double arg1);
-    void on_BValue_valueChanged(double arg1);
+//    void on_BValue_valueChanged(double arg1);
     void on_CValue_valueChanged(double arg1);
-    void on_DValue_valueChanged(double arg1);
-    void on_NValue_valueChanged(int arg1);
+//    void on_DValue_valueChanged(double arg1);
+
+//    void on_NValue_valueChanged(int arg1);
+
     void on_FVision_stateChanged(int arg1);
     void on_dFVision_stateChanged(int arg1);
     void on_PVision_stateChanged(int arg1);
     void on_dPVision_stateChanged(int arg1);
     void on_RVision_stateChanged(int arg1);
-
-    void on_pushButton_clicked();
 
     void on_Calculate_clicked();
 

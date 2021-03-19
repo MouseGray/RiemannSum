@@ -12,12 +12,15 @@ SOURCES += \
     chart.cpp \
     main.cpp \
     mainwindow.cpp \
-    pixels.cpp
+    pixels.cpp \
+    polynomial.cpp
 
 HEADERS += \
     chart.h \
+    function.h \
     mainwindow.h \
-    pixels.h
+    pixels.h \
+    polynomial.h
 
 FORMS += \
     mainwindow.ui
