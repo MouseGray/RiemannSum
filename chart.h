@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QMouseEvent>
+#include <QPainter>
 #include <vector>
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -10,19 +11,24 @@
 
 #include "pixels.h"
 
-using bigdouble = boost::multiprecision::cpp_dec_float_100;
+using bigdouble = long double;//boost::multiprecision::cpp_dec_float_100;
+
+enum class Direction : bool {
+    Horizontal,
+    Vertical
+};
+
+template<Direction Dir>
+constexpr Direction notDir() {
+    if constexpr (Dir == Direction::Horizontal) return Direction::Vertical;
+    else return Direction::Horizontal;
+}
 
 class Chart : public QWidget
 {
     Q_OBJECT
 public:
     explicit Chart(QWidget *parent = nullptr);
-
-    void setXPPU(int value);
-    void setYPPU(int value);
-
-    void setOffsetX(int value);
-    void setOffsetY(int value);
 
     void setAlpha(double value);
     void setBeta(double value);
@@ -45,6 +51,24 @@ public:
     void setR_vision(bool value);
 
     void updateData();
+
+    template<Direction Dir>
+    double getUPP() {
+        if constexpr (Dir == Direction::Horizontal) return XUPP;
+        else return YUPP;
+    }
+
+    template<Direction Dir>
+    double getOffset() {
+        if constexpr (Dir == Direction::Horizontal) return A;
+        else return C;
+    }
+
+    template<Direction Dir>
+    double getLimit() {
+        if constexpr (Dir == Direction::Horizontal) return B;
+        else return D;
+    }
 signals:
     void offsetXChanged(double value);
     void offsetYChanged(double value);
@@ -65,21 +89,33 @@ protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
+    template<Direction Dir>
+    int valueToPixel(double value){
+        if constexpr (Dir == Direction::Vertical) return (height() - 20) - (value - getOffset<Dir>())/getUPP<Dir>();
+        return (value - getOffset<Dir>())/getUPP<Dir>();
+    }
 
+    template<Direction Dir>
+    double pixelToValue(int pixel) {
+        if constexpr (Dir == Direction::Vertical) pixel = height() - pixel;
+        return pixel*getUPP<Dir>() + getOffset<Dir>();
+    }
 
-    bool XAxisIsVisible();
-    bool YAxisIsVisible();
+    template<Direction Dir>
+    bool AxisIsVisible()
+    {
+        auto pos = valueToPixel<Direction::Vertical>(0.0);
+        return pos > 0 && pos < (Dir == Direction::Horizontal ? height() : width());
+    }
 
-    void drawXAxis(QPainter& painter);
-    void drawLXAxis(QPainter& painter);
-    void drawYAxis(QPainter& painter);
-    void drawLYAxis(QPainter& painter);
+    template<Direction Dir>
+    void drawAxis(QPainter& painter, bool visible);
 
-    double range(pixel value);
+    void drawLine(QPainter& painter, int x1, int y1, int x2, int y2);
 
     void fillFiniteDifferences();
 
-    QPoint pressPos;
+    // QPoint pressPos;
 
     bigdouble f(bigdouble x);
 
@@ -87,7 +123,6 @@ private:
 
     double f(double x);
     double N1(double x);
-    double N1_d(double x);
 
     double alpha = 1.0;
     double beta = 1.0;
@@ -95,14 +130,17 @@ private:
     double delta = 1.0;
     double epsilon = 1.0;
 
-    double oldOffsetX = 0.0;
-    double oldOffsetY = 0.0;
+    // double oldOffsetX = 0.0;
+    // double oldOffsetY = 0.0;
 
-    double offsetX = 0.0;
-    double offsetY = 0.0;
+    // double offsetX = 0.0;
+    // double offsetY = 0.0;
 
-    pixel XPPU = 1_px;
-    pixel YPPU = 1_px;
+    double XUPP = 1.0;
+    double YUPP = 1.0;
+
+    // pixel XPPU = 1_px;
+    // pixel YPPU = 1_px;
 
     double A = -100;
     double B = 100;
@@ -123,6 +161,45 @@ private:
     QPoint mousePos;
 
     std::vector<bigdouble> finiteDifferences;
+
+    // QWidget interface
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 };
+
+template<Direction Dir>
+void Chart::drawAxis(QPainter& painter, bool visible)
+{
+    auto w = getLimit<Dir>() - getOffset<Dir>();
+    auto offset = w/10;
+
+    auto value = getOffset<Dir>();
+
+    auto axisPos = valueToPixel<notDir<Dir>()>(0.0);
+
+    for(auto i = 0; i <= 10; i++) {
+        auto pos = valueToPixel<Dir>(value);
+        auto pvalue = static_cast<int>(value*100'000)/100'000.0;
+        if constexpr (Dir == Direction::Horizontal) {
+            if (visible) {
+                drawLine(painter, pos, axisPos + 2, pos, axisPos - 2);
+                painter.drawText(pos, axisPos + 25, QString::number(pvalue, 'g', 6));
+            }
+            else {
+                painter.drawText(pos, height(), QString::number(pvalue, 'g', 6));
+            }
+        }
+        else {
+            if (visible) {
+                drawLine(painter, axisPos + 2, pos, axisPos - 2, pos);
+                painter.drawText(axisPos + 20, pos + 10, QString::number(pvalue, 'g', 6));
+            }
+            else {
+                painter.drawText(30, pos, QString::number(pvalue, 'g', 6));
+            }
+        }
+        value += offset;
+    }
+}
 
 #endif // CHART_H

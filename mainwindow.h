@@ -20,12 +20,6 @@ private slots:
     void lock();
     void unlock();
 
-    void on_XPPU_valueChanged(int arg1);
-    void on_YPPU_valueChanged(int arg1);
-
-    void on_XOffset_valueChanged(int arg1);
-    void on_YOffset_valueChanged(int arg1);
-
     void on_Alpha_valueChanged(double arg1);
     void on_Delta_valueChanged(double arg1);
     void on_Beta_valueChanged(double arg1);
@@ -34,11 +28,6 @@ private slots:
 
 
     void setd(double value, double pos);
-    void setOffsetX(double value);
-    void setOffsetY(double value);
-
-    void setXPPU(pixel value);
-    void setYPPU(pixel value);
 
     void on_AValue_valueChanged(double arg1);
     void on_BValue_valueChanged(double arg1);

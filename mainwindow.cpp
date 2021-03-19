@@ -58,27 +58,6 @@ void MainWindow::unlock()
     ui->Calculate->setDisabled(false);
 }
 
-
-void MainWindow::on_XPPU_valueChanged(int arg1)
-{
-    ui->ChartWidget->setXPPU(arg1);
-}
-
-void MainWindow::on_YPPU_valueChanged(int arg1)
-{
-    ui->ChartWidget->setYPPU(arg1);
-}
-
-void MainWindow::on_XOffset_valueChanged(int arg1)
-{
-    ui->ChartWidget->setOffsetX(arg1);
-}
-
-void MainWindow::on_YOffset_valueChanged(int arg1)
-{
-    ui->ChartWidget->setOffsetY(arg1);
-}
-
 void MainWindow::on_Alpha_valueChanged(double arg1)
 {
 
@@ -108,26 +87,6 @@ void MainWindow::on_Epsilon_valueChanged(double arg1)
 void MainWindow::setd(double value, double pos)
 {
     ui->dValue->setText(QString::number(value) + "\n(x=" + QString::number(pos) + ")");
-}
-
-void MainWindow::setOffsetX(double value)
-{
-    ui->XOffset->setValue(value);
-}
-
-void MainWindow::setOffsetY(double value)
-{
-    ui->YOffset->setValue(value);
-}
-
-void MainWindow::setXPPU(pixel value)
-{
-    ui->XPPU->setValue(value.value);
-}
-
-void MainWindow::setYPPU(pixel value)
-{
-    ui->YPPU->setValue(value.value);
 }
 
 void MainWindow::on_AValue_valueChanged(double arg1)

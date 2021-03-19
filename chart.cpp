@@ -17,6 +17,7 @@ Chart::Chart(QWidget *parent) : QWidget(parent)
 
 void Chart::wheelEvent(QWheelEvent *event)
 {
+#ifdef DEPRECATED
     auto sign = boost::math::sign(event->angleDelta().y());
     setXPPU((XPPU + 50_px*sign).value);
     setYPPU((YPPU + 50_px*sign).value);
@@ -24,25 +25,29 @@ void Chart::wheelEvent(QWheelEvent *event)
     emit XPPUChanged(XPPU);
     emit YPPUChanged(YPPU);
     update();
+#endif
 }
 
 void Chart::mousePressEvent(QMouseEvent *event)
 {
+#ifdef DEPRECATED
     oldOffsetX = offsetX;
     oldOffsetY = offsetY;
     pressPos = event->pos();
+#endif
 }
 
 void Chart::mouseMoveEvent(QMouseEvent *event)
 {
+#ifdef DEPRECATED
     if(event->buttons() & Qt::MouseButton::LeftButton){
         offsetX = oldOffsetX + (pressPos.x() - event->x())*range(XPPU)*0.04;
         offsetY = oldOffsetY + (pressPos.y() - event->y())*range(YPPU)*0.04;
         emit offsetXChanged(offsetX);
         emit offsetYChanged(offsetY);
     }
-    else
-        mousePos = event->pos();
+#endif
+    mousePos = event->pos();
 
     update();
 }
@@ -55,41 +60,38 @@ void Chart::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
 
-    auto width = pixel(this->width());
-    auto height = pixel(this->height());
-
-    auto midX = pixel(this->width() >> 1);
-    auto midY = pixel(this->height() >> 1);
+    auto width = this->width();
+    auto height = this->height();
 
     painter.setPen(QPen(Qt::white, 1, Qt::PenStyle::DashLine));
-    auto a = midX + XPPU*(A - offsetX);
-    auto b = midX + XPPU*(B - offsetX);
-    auto c = midY + YPPU*(C - offsetY);
-    auto d = midY + YPPU*(D - offsetY);
 
-    painter.drawLine(a.value, 0, a.value, height.value);
-    painter.drawLine(b.value, 0, b.value, height.value);
+    drawLine(painter, valueToPixel<Direction::Horizontal>(A), -10,
+                      valueToPixel<Direction::Horizontal>(A), height - 10);
+    drawLine(painter, valueToPixel<Direction::Horizontal>(B), -10,
+                      valueToPixel<Direction::Horizontal>(B), height - 10);
 
-    painter.drawLine(0, c.value, width.value, c.value);
-    painter.drawLine(0, d.value, width.value, d.value);
+    drawLine(painter, -10, valueToPixel<Direction::Vertical>(C),
+                      width - 10, valueToPixel<Direction::Vertical>(C));
+    drawLine(painter, -10, valueToPixel<Direction::Vertical>(D),
+                      width - 10, valueToPixel<Direction::Vertical>(D));
 
     painter.setPen(QPen(QColor(255, 0, 255), 1));
 
-    auto dx = midX + XPPU*(this->dx - offsetX);
+    auto dx = valueToPixel<Direction::Horizontal>(this->dx);
 
-    painter.drawLine(dx.value, 0, dx.value, height.value);
+    drawLine(painter, dx, -10, dx, height - 10);
 
     painter.setPen(QPen(Qt::white));
 
     // Axis
-    auto x = -XPPU*offsetX + midX;
-    auto y = -YPPU*offsetY + midY;
-    painter.drawLine(0, y.value, width.value, y.value);
-    painter.drawLine(x.value, 0, x.value, height.value);
+    auto x = valueToPixel<Direction::Horizontal>(0.0);
+    auto y = valueToPixel<Direction::Vertical>(0.0);
+    drawLine(painter, -10, y, width - 10, y);
+    drawLine(painter, x, -10, x, height - 10);
 
-    auto xj = (-1_px - midX)/XPPU + offsetX;
-    auto x0 = ( 0_px - midX)/XPPU + offsetX;
-    auto x1 = ( 1_px - midX)/XPPU + offsetX;
+    auto xj = pixelToValue<Direction::Horizontal>(-1);
+    auto x0 = pixelToValue<Direction::Horizontal>(0);
+    auto x1 = pixelToValue<Direction::Horizontal>(1);
 
     auto F_yj = f(xj);
     auto F_y0 = f(x0);
@@ -99,38 +101,38 @@ void Chart::paintEvent(QPaintEvent*)
     auto N_y0 = N1(x0);
     auto N_y1 = N1(x1);
 
-    auto F_yj_px = midY - YPPU*(F_yj + offsetY);
-    auto F_y0_px = midY - YPPU*(F_y0 + offsetY);
-    auto F_y1_px = midY - YPPU*(F_y1 + offsetY);
+    auto F_yj_px = valueToPixel<Direction::Vertical>(F_yj);
+    auto F_y0_px = valueToPixel<Direction::Vertical>(F_y0);
+    auto F_y1_px = valueToPixel<Direction::Vertical>(F_y1);
 
-    auto N_yj_px = midY - YPPU*(N_yj + offsetY);
-    auto N_y0_px = midY - YPPU*(N_y0 + offsetY);
-    auto N_y1_px = midY - YPPU*(N_y1 + offsetY);
+    auto N_yj_px = valueToPixel<Direction::Vertical>(N_yj);
+    auto N_y0_px = valueToPixel<Direction::Vertical>(N_y0);
+    auto N_y1_px = valueToPixel<Direction::Vertical>(N_y1);
 
-    auto F_dif0 = midY - YPPU*(XPPU*(F_y1 - F_yj)/2_px + offsetY);
-    auto F_dif1 = 0_px;
+    auto F_dif0 = valueToPixel<Direction::Vertical>((F_y1 - F_yj)/(2*XUPP));
+    auto F_dif1 = 0;
 
-    auto N_dif0 = midY - YPPU*(XPPU*(N_y1 - N_yj)/2_px + offsetY);
-    auto N_dif1 = 0_px;
+    auto N_dif0 = valueToPixel<Direction::Vertical>((N_y1 - N_yj)/(2*XUPP));
+    auto N_dif1 = 0;
 
     //auto start = clock();
-    for(auto p = 0_px; p < width; p++){
+    for(auto p = 0; p < width; p++){
 
         painter.setPen(Qt::red);
-        if (F_vision) painter.drawLine(p.value, F_y0_px.value, (p + 1).value, F_y1_px.value);
+        if (F_vision) drawLine(painter, p, F_y0_px, (p + 1), F_y1_px);
 
         painter.setPen(Qt::blue);
-        if (P_vision) painter.drawLine(p.value, N_y0_px.value, (p + 1).value, N_y1_px.value);
+        if (P_vision) drawLine(painter, p, N_y0_px, (p + 1), N_y1_px);
 
-        auto r0 = midY - YPPU*((F_y0 - N_y0) + offsetY);
-        auto r1 = midY - YPPU*((F_y1 - N_y1) + offsetY);
+        auto r0 = valueToPixel<Direction::Vertical>(F_y0 - N_y0);
+        auto r1 = valueToPixel<Direction::Vertical>(F_y1 - N_y1);
 
         painter.setPen(QColor(0, 255, 255));
-        if (R_vision) painter.drawLine(p.value, r0.value, (p + 1_px).value, r1.value);
+        if (R_vision) drawLine(painter, p, r0, (p + 1), r1);
 
         xj = x0;
         x0 = x1;
-        x1 = (p + 2_px - midX)/XPPU + offsetX;
+        x1 = pixelToValue<Direction::Horizontal>(p + 2);
 
         F_yj = F_y0;
         F_y0 = F_y1;
@@ -142,23 +144,23 @@ void Chart::paintEvent(QPaintEvent*)
 
         F_yj_px = F_y0_px;
         F_y0_px = F_y1_px;
-        F_y1_px = midY - YPPU*(F_y1 + offsetY);
+        F_y1_px = valueToPixel<Direction::Vertical>(F_y1);
 
         N_yj_px = N_y0_px;
         N_y0_px = N_y1_px;
-        N_y1_px = midY - YPPU*(N_y1 + offsetY);
+        N_y1_px = valueToPixel<Direction::Vertical>(N_y1);
 
-        F_dif1 = midY - YPPU*(XPPU*(F_y1 - F_yj)/2_px + offsetY);
+        F_dif1 = valueToPixel<Direction::Vertical>((F_y1 - F_yj)/(2*XUPP));
 
         painter.setPen(Qt::yellow);
-        if (dF_vision) painter.drawLine(p.value, F_dif0.value, (p + 1_px).value, F_dif1.value);
+        if (dF_vision) drawLine(painter, p, F_dif0, (p + 1), F_dif1);
 
         F_dif0 = F_dif1;
 
-        N_dif1 = midY - YPPU*(XPPU*(N_y1 - N_yj)/2_px + offsetY);
+        N_dif1 = valueToPixel<Direction::Vertical>((N_y1 - N_yj)/(2*XUPP));
 
         painter.setPen(Qt::green);
-        if (dP_vision) painter.drawLine(p.value, N_dif0.value, (p + 1_px).value, N_dif1.value);
+        if (dP_vision) drawLine(painter, p, N_dif0, (p + 1), N_dif1);
 
         N_dif0 = N_dif1;
     }
@@ -167,37 +169,35 @@ void Chart::paintEvent(QPaintEvent*)
 
     painter.setPen(Qt::white);
 
-    painter.drawText(width.value - 60, 20, "x:" + QString::number((pixel(mousePos.x()) - midX)/XPPU + offsetX));
-    painter.drawText(width.value - 60, 40, "y:" + QString::number(-(pixel(mousePos.y()) - midY + offsetY)/YPPU + offsetY));
+    painter.drawText(width - 80, 20, "x:" + QString::number(pixelToValue<Direction::Horizontal>(mousePos.x() - 10)));
+    painter.drawText(width - 80, 40, "y:" + QString::number(pixelToValue<Direction::Vertical>(mousePos.y() + 10)));
 
-    painter.drawText(width.value - 120, 20, "x:" + QString::number(mousePos.x()));
-    painter.drawText(width.value - 120, 40, "y:" + QString::number(mousePos.y()));
+    painter.drawText(width - 140, 20, "x:" + QString::number(mousePos.x()));
+    painter.drawText(width - 140, 40, "y:" + QString::number(mousePos.y()));
 
     painter.drawEllipse(mousePos.x(), mousePos.y(), 3, 3);
 
 
-
-    if (XAxisIsVisible())
-        drawXAxis(painter);
-    else
-        drawLXAxis(painter);
-    if (YAxisIsVisible())
-        drawYAxis(painter);
-    else
-        drawLYAxis(painter);
-
-
+    drawAxis<Direction::Horizontal>(painter, AxisIsVisible<Direction::Vertical>());
+    drawAxis<Direction::Vertical>(painter, AxisIsVisible<Direction::Horizontal>());
 
     //painter.drawText(QPoint(width() - 40, 60), "zx:" + QString::number(zoomX));
     //painter.drawText(QPoint(width() - 40, 80), "zy:" + QString::number(boost::math::sign(0)));
 
 }
 
+void Chart::drawLine(QPainter &painter, int x1, int y1, int x2, int y2)
+{
+    painter.drawLine(x1 + 10, y1 + 10, x2 + 10, y2 + 10);
+}
 
 #include <thread>
 
 void Chart::calc()
 {
+    XUPP = (B - A)/(width() - 20);
+    YUPP = (D - C)/(height() - 20);
+
     fillFiniteDifferences();
     t_result = f(bigdouble(A));
 
@@ -219,202 +219,6 @@ void Chart::updateData()
     emit lock();
     std::thread t(&Chart::calc, this);
     t.detach();
-}
-
-bool Chart::YAxisIsVisible()
-{
-    auto pos = -offsetX*XPPU.value + (width() >> 1);
-    return pos > 0 && pos < width();
-}
-
-bool Chart::XAxisIsVisible()
-{
-    auto pos = -offsetY*YPPU.value + (height() >> 1);
-    return pos > 0 && pos < height();
-}
-
-void Chart::drawXAxis(QPainter &painter)
-{
-    auto coef = range(XPPU);
-    auto offset = XPPU.value*coef;
-
-    auto axisPos = (width() >> 1) - offsetX*XPPU.value;
-
-    auto it = int(axisPos < 0.0 ? -axisPos/offset : 0);
-    auto limit = width();
-    auto curPos = axisPos + it*offset;
-
-    while(curPos <= limit) {
-        painter.drawLine(curPos, -offsetY*YPPU.value + (height() >> 1) + 2, curPos, -offsetY*YPPU.value + (height() >> 1) - 2);
-        painter.drawText(curPos - 15, -offsetY*YPPU.value + (height() >> 1) + 15, QString::number(it*coef));
-        curPos += offset;
-        it++;
-    }
-
-    if (axisPos > width()) {
-        it = std::max((axisPos-width())/offset, 1.0);
-        curPos = axisPos - it*offset;
-    }
-    else {
-        it = 1;
-        curPos = axisPos - offset;
-    }
-    while(curPos >= 0) {
-        painter.drawLine(curPos, -offsetY*YPPU.value + (height() >> 1) + 2, curPos, -offsetY*YPPU.value + (height() >> 1) - 2);
-        painter.drawText(curPos - 15, -offsetY*YPPU.value + (height() >> 1) + 15, QString::number(-it*coef));
-        curPos -= offset;
-        it++;
-    }
-}
-
-void Chart::drawLXAxis(QPainter &painter)
-{
-    auto coef = range(XPPU);
-    int offset = XPPU.value*coef;
-
-    auto axisPos = width()/2 - offsetX*XPPU.value;
-
-    auto it = 0;
-    auto limit = 0.0;
-    auto curPos = 0.0;
-
-    if (axisPos < 0) {
-        limit = width() - axisPos;
-        it = -axisPos/offset;
-        curPos = axisPos + it*offset;
-    }
-    else {
-        it = 0;
-        limit = width();
-        curPos = axisPos;
-    }
-
-    while(curPos <= limit) {
-        painter.drawText(curPos - 15, height() - 15, QString::number(it*coef));
-        curPos += offset;
-        it++;
-    }
-
-    if (axisPos > width()) {
-        it = std::max((axisPos-width())/offset, 1.0);
-        curPos = axisPos - it*offset;
-    }
-    else {
-        it = 1;
-        curPos = axisPos - offset;
-    }
-
-    while(curPos >= 0) {
-        painter.drawText(curPos - 15, height() - 15, QString::number(it*coef));
-        curPos -= offset;
-        it++;
-    }
-}
-
-void Chart::drawYAxis(QPainter &painter)
-{
-    auto coef = range(YPPU);
-    int offset = YPPU.value*coef;
-
-    auto axisPos = height()/2 - offsetY*YPPU.value;
-
-    auto it = 0;
-    auto limit = 0.0;
-    auto curPos = 0.0;
-
-    if (axisPos < 0) {
-        limit = height() - axisPos;
-        it = -axisPos/offset;
-        curPos = axisPos + it*offset;
-    }
-    else {
-        it = 1;
-        limit = height();
-        curPos = axisPos + offset;
-    }
-
-    while(curPos <= limit) {
-        painter.drawLine(-offsetX*XPPU.value + (width() >> 1) + 2, curPos, -offsetX*XPPU.value + (width() >> 1) - 2, curPos);
-        painter.drawText(-offsetX*XPPU.value + (width() >> 1) - 25, curPos, QString::number(-it*coef));
-        curPos += offset;
-        it++;
-    }
-
-    if (axisPos > height()) {
-        it = std::max((axisPos-height())/offset, 1.0);
-        curPos = axisPos - it*offset;
-    }
-    else {
-        it = 1;
-        curPos = axisPos - offset;
-    }
-
-    while(curPos >= 0) {
-        painter.drawLine(-offsetX*XPPU.value + (width() >> 1) + 2, curPos, -offsetX*XPPU.value + (width() >> 1) - 2, curPos);
-        painter.drawText(-offsetX*XPPU.value + (width() >> 1) - 25, curPos, QString::number(it*coef));
-        curPos -= offset;
-        it++;
-    }
-}
-
-void Chart::drawLYAxis(QPainter &painter)
-{
-    auto coef = range(YPPU);
-    int offset = YPPU.value*coef;
-
-    auto axisPos = height()/2 - offsetY*YPPU.value;
-
-    auto it = 0;
-    auto limit = 0.0;
-    auto curPos = 0.0;
-
-    if (axisPos < 0) {
-        limit = height() - axisPos;
-        it = -axisPos/offset;
-        curPos = axisPos + it*offset;
-    }
-    else {
-        it = 1;
-        limit = height();
-        curPos = axisPos + offset;
-    }
-
-    while(curPos <= limit) {
-        painter.drawText(0, curPos, QString::number(-it*coef));
-        curPos += offset;
-        it++;
-    }
-
-    if (axisPos > height()) {
-        it = std::max((axisPos-height())/offset, 1.0);
-        curPos = axisPos - it*offset;
-    }
-    else {
-        it = 1;
-        curPos = axisPos - offset;
-    }
-    while(curPos >= 0) {
-        painter.drawText(0, curPos, QString::number(it*coef));
-        curPos -= offset;
-        it++;
-    }
-}
-
-
-
-double Chart::range(pixel value)
-{
-    if(1_px     <= value && value < 5_px) return 50;
-    if(5_px     <= value && value < 20_px) return 10;
-    if(20_px    <= value && value < 50_px) return 5;
-    if(50_px    <= value && value < 150_px) return 1;
-
-    if(150_px   <= value && value < 400_px) return 0.5;
-    if(400_px   <= value && value < 2000_px) return 0.1;
-    if(2000_px  <= value && value < 4000_px) return 0.05;
-    if(4000_px  <= value && value < 20000_px) return 0.01;
-    if(20000_px <= value && value < 40000_px) return 0.005;
-    return 0.001;
 }
 
 void Chart::fillFiniteDifferences()
@@ -448,8 +252,11 @@ void Chart::fillFiniteDifferences()
 
 bigdouble Chart::f(bigdouble x)
 {
-    return alpha*boost::multiprecision::sin(
-                boost::multiprecision::tan(beta/((x - gamma == 0) ? bigdouble(0.00000000001) : x - gamma))) + delta*boost::multiprecision::cos(epsilon*x);
+    if (x - gamma == 0) return 0;
+    return alpha*sin(tan(beta/(x - gamma))) + delta*cos(epsilon*x);
+//    return alpha*boost::multiprecision::sin(
+//                boost::multiprecision::tan(beta/((x - gamma == 0) ? bigdouble(0.00000000001) : x - gamma))) + delta*boost::multiprecision::cos(epsilon*x);
+
 }
 
 double Chart::f(double x)
@@ -468,8 +275,8 @@ double Chart::N1(double x)
     bigdouble accum = 1.0;
     double offset = A;
     for(auto k = 1; k < N + 1; k++){
-        accum = (accum*(x - offset))/(k*h);
-        //accum = accum*((q - k + 1)/k);
+        //accum = (accum*(x - offset))/(k*h);
+        accum = accum*((q - k + 1)/k);
         offset += h;
 
 //        qDebug() << "k:" << k;
@@ -480,31 +287,7 @@ double Chart::N1(double x)
         result += accum*finiteDifferences[k - 1];
     }
 
-    return result.convert_to<double>();
-}
-
-double Chart::N1_d(double x)
-{
-    auto result = t_result;
-    double h = double(B-A)/(N);
-
-    //double q = (x - A)/h;
-    bigdouble accum = 1.0;
-    double offset = A;
-    for(auto k = 1; k < N + 1; k++){
-        accum = (accum*(x - offset))/(k*h);
-        //accum = accum*((q - k + 1)/k);
-        offset += h;
-        qDebug() << "k:" << k;
-        qDebug() << "res:" << result.str().c_str();
-        qDebug() << "acc:" << accum.str().c_str();
-        qDebug() << "dif:" << finiteDifferences[k-1].str().c_str();
-        result += accum*finiteDifferences[k - 1];
-
-        qDebug() << "res2:" << result.str().c_str();
-    }
-    qDebug() << result.str().c_str();
-    return static_cast<double>(result);
+    return result;//.convert_to<double>();
 }
 
 void Chart::setR_vision(bool value)
@@ -587,26 +370,9 @@ void Chart::setAlpha(double value)
     alpha = value;
 }
 
-void Chart::setOffsetY(int value)
-{
-    offsetY = value;
-    update();
-}
 
-void Chart::setOffsetX(int value)
+void Chart::resizeEvent(QResizeEvent *event)
 {
-    offsetX = value;
-    update();
-}
-
-void Chart::setYPPU(int value)
-{
-    YPPU = std::clamp(value, 1, 100000);
-    update();
-}
-
-void Chart::setXPPU(int value)
-{
-    XPPU = std::clamp(value, 1, 100000);
-    update();
+    XUPP = (B - A)/(width() - 20);
+    YUPP = (D - C)/(height() - 20);
 }
