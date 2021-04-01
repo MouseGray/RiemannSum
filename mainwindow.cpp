@@ -17,17 +17,10 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::setd(double value, double pos)
-{
-    ui->dValue->setText(QString::number(value) + "\n(x=" + QString::number(pos) + ")");
-}
-
 void MainWindow::on_AValue_valueChanged(double arg1)
 {
     ui->BValue->setMinimum(arg1);
 }
-
-// void MainWindow::on_BValue_valueChanged(double arg1) { }
 
 void MainWindow::on_CValue_valueChanged(double arg1)
 {
@@ -35,28 +28,9 @@ void MainWindow::on_CValue_valueChanged(double arg1)
     ui->DValue->setMinimum(arg1);
 }
 
-// void MainWindow::on_DValue_valueChanged(double arg1) { }
-
-// void MainWindow::on_NValue_valueChanged(int arg1) { }
-
 void MainWindow::on_FVision_stateChanged(int arg1)
 {
     ui->ChartWidget->setF_vision(arg1);
-}
-
-void MainWindow::on_dFVision_stateChanged(int arg1)
-{
-    ui->ChartWidget->setDF_vision(arg1);
-}
-
-void MainWindow::on_PVision_stateChanged(int arg1)
-{
-    ui->ChartWidget->setP_vision(arg1);
-}
-
-void MainWindow::on_dPVision_stateChanged(int arg1)
-{
-    ui->ChartWidget->setDP_vision(arg1);
 }
 
 void MainWindow::on_RVision_stateChanged(int arg1)
@@ -79,4 +53,29 @@ void MainWindow::on_Calculate_clicked()
     ui->ChartWidget->setN(ui->NValue->value());
 
     ui->ChartWidget->updateData();
+}
+
+void MainWindow::on_AlphaFix_clicked()
+{
+    ui->ChartWidget->setAlphaFix();
+}
+
+void MainWindow::on_BetaFix_clicked()
+{
+    ui->ChartWidget->setBetaFix();
+}
+
+void MainWindow::on_GammaFix_clicked()
+{
+    ui->ChartWidget->setGammaFix();
+}
+
+void MainWindow::on_DeltaFix_clicked()
+{
+    ui->ChartWidget->setDeltaFix();
+}
+
+void MainWindow::on_EpsilonFix_clicked()
+{
+    ui->ChartWidget->setEpsilonFix();
 }

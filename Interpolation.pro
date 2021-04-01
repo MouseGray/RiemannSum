@@ -12,15 +12,13 @@ SOURCES += \
     chart.cpp \
     main.cpp \
     mainwindow.cpp \
-    pixels.cpp \
-    polynomial.cpp
+    riemannsum.cpp
 
 HEADERS += \
     chart.h \
     function.h \
     mainwindow.h \
-    pixels.h \
-    polynomial.h
+    riemannsum.h
 
 FORMS += \
     mainwindow.ui
@@ -29,18 +27,3 @@ FORMS += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
-
-unix|win32: LIBS += -LD:/boost_1_75_0/boost_gcc_840/lib/ -llibboost_math_tr1-mgw48-mt-x32-1_75.dll
-
-INCLUDEPATH += D:/boost_1_75_0/boost_gcc_840/include/boost-1_75
-DEPENDPATH += D:/boost_1_75_0/boost_gcc_840/include/boost-1_75
-
-unix|win32: LIBS += -LD:/boost_1_75_0/boost_gcc_840/lib/ -llibboost_timer-mgw48-mt-x32-1_75.dll
-
-INCLUDEPATH += D:/boost_1_75_0/boost_gcc_840/include/boost-1_75
-DEPENDPATH += D:/boost_1_75_0/boost_gcc_840/include/boost-1_75
-
-unix|win32: LIBS += -LD:/boost_1_75_0/boost_gcc_840/lib/ -llibboost_date_time-mgw48-mt-x32-1_75.dll
-
-INCLUDEPATH += D:/boost_1_75_0/boost_gcc_840/include
-DEPENDPATH += D:/boost_1_75_0/boost_gcc_840/include

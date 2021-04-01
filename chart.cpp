@@ -72,7 +72,7 @@ double Chart::pixelToValue<Direction::Vertical>(int pixel) {
 
 Chart::Chart(QWidget *parent) : QWidget(parent)
 {
-    P.setF(&f);
+    R.setF(&f);
     updateData();
 }
 
@@ -104,11 +104,6 @@ void Chart::paintEvent(QPaintEvent*)
     drawLine(painter, -10, valueToPixel<Direction::Vertical>(D),
                       getPixelLimit<Direction::Horizontal>() - 10, valueToPixel<Direction::Vertical>(D));
 
-    // Draw d
-    painter.setPen(QPen(QColor(255, 0, 255), 1));
-    auto dx = valueToPixel<Direction::Horizontal>(this->dx);
-    drawLine(painter, dx, -10, dx, getPixelLimit<Direction::Vertical>() - 10);
-
     // Draw axis
     painter.setPen(QPen(Qt::white));
 
@@ -118,31 +113,20 @@ void Chart::paintEvent(QPaintEvent*)
     drawLine(painter, x, -10, x, getPixelLimit<Direction::Vertical>() - 10);
 
     // Calculate primary values
-    auto xj = pixelToValue<Direction::Horizontal>(-1);
     auto x0 = pixelToValue<Direction::Horizontal>(0);
     auto x1 = pixelToValue<Direction::Horizontal>(1);
 
-    auto F_yj = f(xj);
-    auto F_y0 = f(x0);
-    auto F_y1 = f(x1);
+    auto F_y0 = f(x0, 0.0, Coefficient::Null);
+    auto F_y1 = f(x1, 0.0, Coefficient::Null);
 
-    auto N_yj = P(xj);
-    auto N_y0 = P(x0);
-    auto N_y1 = P(x1);
+    auto R_y0 = R(x0);
+    auto R_y1 = R(x1);
 
-//  auto F_yj_px = valueToPixel<Direction::Vertical>(F_yj);
     auto F_y0_px = valueToPixel<Direction::Vertical>(F_y0);
     auto F_y1_px = valueToPixel<Direction::Vertical>(F_y1);
 
-//  auto N_yj_px = valueToPixel<Direction::Vertical>(N_yj);
-    auto N_y0_px = valueToPixel<Direction::Vertical>(N_y0);
-    auto N_y1_px = valueToPixel<Direction::Vertical>(N_y1);
-
-    auto F_dif0 = valueToPixel<Direction::Vertical>((F_y1 - F_yj)/(2*XUPP));
-    auto F_dif1 = 0;
-
-    auto N_dif0 = valueToPixel<Direction::Vertical>((N_y1 - N_yj)/(2*XUPP));
-    auto N_dif1 = 0;
+    auto R_y0_px = valueToPixel<Direction::Vertical>(R_y0);
+    auto R_y1_px = valueToPixel<Direction::Vertical>(R_y1);
 
     // Draw charts
     for(auto p = 0; p < getPixelLimit<Direction::Horizontal>(); p++){
@@ -151,54 +135,25 @@ void Chart::paintEvent(QPaintEvent*)
         painter.setPen(Qt::red);
         if (F_isVisible) drawLine(painter, p, F_y0_px, (p + 1), F_y1_px);
 
-        // Draw P
+        // Draw R
         painter.setPen(Qt::blue);
-        if (P_isVisible) drawLine(painter, p, N_y0_px, (p + 1), N_y1_px);
-
-        // Draw r
-        painter.setPen(QColor(0, 255, 255));
-        if (R_isVisible) {
-            auto r0 = valueToPixel<Direction::Vertical>(F_y0 - N_y0);
-            auto r1 = valueToPixel<Direction::Vertical>(F_y1 - N_y1);
-            drawLine(painter, p, r0, (p + 1), r1);
-        }
+        if (R_isVisible) drawLine(painter, p, R_y0_px, (p + 1), R_y1_px);
 
         // Calculate next values
-        xj = x0;
         x0 = x1;
         x1 = pixelToValue<Direction::Horizontal>(p + 2);
 
-        F_yj = F_y0;
         F_y0 = F_y1;
-        F_y1 = f(x1);
+        F_y1 = f(x1, 0.0, Coefficient::Null);
 
-        N_yj = N_y0;
-        N_y0 = N_y1;
-        N_y1 = P(x1);
+        R_y0 = R_y1;
+        R_y1 = R(x1);
 
-//      F_yj_px = F_y0_px;
         F_y0_px = F_y1_px;
         F_y1_px = valueToPixel<Direction::Vertical>(F_y1);
 
-//      N_yj_px = N_y0_px;
-        N_y0_px = N_y1_px;
-        N_y1_px = valueToPixel<Direction::Vertical>(N_y1);
-
-        F_dif1 = valueToPixel<Direction::Vertical>((F_y1 - F_yj)/(2*XUPP));
-
-        N_dif1 = valueToPixel<Direction::Vertical>((N_y1 - N_yj)/(2*XUPP));
-
-        // Draw dF
-        painter.setPen(Qt::yellow);
-        if (dF_isVisible) drawLine(painter, p, F_dif0, (p + 1), F_dif1);
-
-        // Draw dP
-        painter.setPen(Qt::green);
-        if (dP_isVisible) drawLine(painter, p, N_dif0, (p + 1), N_dif1);
-
-        F_dif0 = F_dif1;
-
-        N_dif0 = N_dif1;
+        R_y0_px = R_y1_px;
+        R_y1_px = valueToPixel<Direction::Vertical>(R_y1);
     }
 
     // Draw coords text
@@ -229,7 +184,6 @@ void Chart::drawLine(QPainter &painter, int x1, int y1, int x2, int y2)
 void Chart::updateData()
 {
     updateUPP();
-    calculate_d();
     update();
 }
 
@@ -237,19 +191,6 @@ void Chart::updateUPP()
 {
     XUPP = (B - A)/(width() - 2*BORDER_SIZE);
     YUPP = (D - C)/(height() - 2*BORDER_SIZE);
-}
-
-void Chart::calculate_d()
-{
-    d = 0;
-    for(auto s = A; s <= B; s += 0.01) {
-        auto val = abs(f(s) - P(s));
-        if (d < val) {
-            d = val; dx = s;
-        }
-    }
-
-    emit dChanged(d, dx);
 }
 
 template<Direction Dir>
